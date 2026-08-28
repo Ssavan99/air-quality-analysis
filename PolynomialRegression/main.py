@@ -44,9 +44,22 @@ plt.plot(X_sorted, prediction_Linear_Sorted, color='red', linewidth=2, linestyle
 plt.plot(X_sorted, prediction_Quadratic_Sorted, color='green', linewidth=2, linestyle="-.", label=f'Quadratic Regression (R²: {r2_Quadratic:.6f})')
 plt.plot(X_sorted, prediction_Cubic_Sorted, color='purple', linewidth=1.5, linestyle="-", label=f'Cubic Regression (R²: {r2_Cubic:.6f})')
 
-plt.text(0.95, 0.12, f"Linear: {co_safe_linear:.2f} µg/m³", ha='right', va='bottom', transform=plt.gca().transAxes, fontsize=10, color="red")
-plt.text(0.95, 0.07, f"Quadratic: {co_safe_quadratic:.2f} µg/m³", ha='right', va='bottom', transform=plt.gca().transAxes, fontsize=10, color="green")
-plt.text(0.95, 0.02, f"Cubic: {co_safe_cubic:.2f} µg/m³", ha='right', va='bottom', transform=plt.gca().transAxes, fontsize=10, color="blue")
+# CO level each model says would bring PM2.5 down to the safe threshold.
+# A negative concentration is not physically meaningful, so label it as such
+# instead of printing it as if it were a result.
+def label(value):
+    return f"{value:.2f} µg/m³" + ("  (invalid)" if value < 0 else "")
+
+plt.text(0.95, 0.12, f"Linear: {label(co_safe_linear)}", ha='right', va='bottom', transform=plt.gca().transAxes, fontsize=10, color="red")
+plt.text(0.95, 0.07, f"Quadratic: {label(co_safe_quadratic)}", ha='right', va='bottom', transform=plt.gca().transAxes, fontsize=10, color="green")
+plt.text(0.95, 0.02, f"Cubic: {label(co_safe_cubic)}", ha='right', va='bottom', transform=plt.gca().transAxes, fontsize=10, color="purple")
+
+print(f"CO needed for PM2.5 = {SAFE_PM25_THRESHOLD} µg/m³")
+print(f"  Linear:    {label(co_safe_linear)}")
+print(f"  Quadratic: {label(co_safe_quadratic)}")
+print(f"  Cubic:     {label(co_safe_cubic)}")
+if not Cubic.inverse_converged:
+    print(f"  cubic root solver did not converge: {Cubic.inverse_message}")
 
 plt.xlabel('Carbon Monoxide (µg/m³)')
 plt.ylabel('PM2.5 (µg/m³)')
