@@ -4,6 +4,8 @@ Polynomial regression, exponential regression and Simpson's rule applied to 18,7
 pollution readings from Delhi. The interesting result is not which model fits best — it is
 that the model which *looks* best is the one you should throw away.
 
+**[Explore the charts →](https://ssavan99.github.io/air-quality-analysis/)**
+
 ![In-sample versus cross-validated R² for the three polynomial models, and the share of days in each US EPA air quality category](docs/headline.png)
 
 ## What it found
