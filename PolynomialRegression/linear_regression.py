@@ -9,6 +9,8 @@ class LinearRegression:
     self.coefficients = np.linalg.inv(X_linear.T.dot(X_linear)).dot(X_linear.T).dot(y)
 
   def predict(self, X):
+    if self.coefficients is None:
+      raise RuntimeError("call fit() before predict()")
     X_linear = np.hstack([np.ones((X.shape[0], 1)), X])
     return X_linear.dot(self.coefficients)
   
@@ -18,6 +20,8 @@ class LinearRegression:
     return 1- (ss_residual / ss_total)
   
   def predict_inverse(self, target_pm25):
+    if self.coefficients is None:
+      raise RuntimeError("call fit() before predict_inverse()")
     b0, b1 = self.coefficients 
     if b1 != 0:
       CO_safe = (target_pm25 - b0) / b1

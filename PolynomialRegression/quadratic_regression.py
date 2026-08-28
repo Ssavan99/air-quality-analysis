@@ -10,6 +10,8 @@ class QuadraticRegression:
     self.coefficients = np.linalg.inv(X_quad.T.dot(X_quad)).dot(X_quad.T).dot(y)
 
   def predict(self, X):
+    if self.coefficients is None:
+      raise RuntimeError("call fit() before predict()")
     X_quad = np.hstack([np.ones((X.shape[0], 1)), X, X**2])
     return X_quad.dot(self.coefficients)
   
@@ -19,6 +21,8 @@ class QuadraticRegression:
     return 1 - (ss_residual / ss_total)
   
   def predict_inverse(self, target_pm25):
+    if self.coefficients is None:
+      raise RuntimeError("call fit() before predict_inverse()")
       
     b0, b1, b2 = self.coefficients  
     

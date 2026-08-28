@@ -12,6 +12,8 @@ class CubicRegression:
     self.coefficients = np.linalg.inv(X_cubic.T.dot(X_cubic)).dot(X_cubic.T).dot(y)
 
   def predict(self, X):
+    if self.coefficients is None:
+      raise RuntimeError("call fit() before predict()")
     X_cubic = np.hstack([np.ones((X.shape[0], 1)), X, X**2, X**3])
     return X_cubic.dot(self.coefficients)
   
@@ -21,6 +23,8 @@ class CubicRegression:
     return 1 - (ss_residual / ss_total)
   
   def predict_inverse(self, target_pm25):
+    if self.coefficients is None:
+      raise RuntimeError("call fit() before predict_inverse()")
     """Solve the fitted cubic for the CO level giving target_pm25.
 
     The solver's diagnostics are kept on the instance rather than discarded.
