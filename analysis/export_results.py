@@ -53,14 +53,26 @@ def polynomial_block(frame):
         model = factory()
         model.fit(X, y)
         safe_co = float(model.predict_inverse(SAFE_PM25_THRESHOLD))
-        rows.append({
+        entry = {
             "model": name,
             "n_params": n_params,
             "r2": float(model.r2_score(y, model.predict(X))),
             "coefficients": [float(c) for c in np.ravel(model.coefficients)],
             "safe_co_for_pm25_15": safe_co,
             "safe_co_valid": safe_co > 0,
-        })
+        }
+        # The cubic keeps its root-finder diagnostics. Without them the site
+        # would report "-350.51, invalid" as though the model had predicted a
+        # negative concentration, when in fact the solver failed to converge
+        # and the returned value is not a root at all.
+        converged = getattr(model, "inverse_converged", None)
+        if converged is not None:
+            entry["solver_converged"] = bool(converged)
+            entry["solver_message"] = getattr(model, "inverse_message", "")
+            entry["residual_at_returned_value"] = float(
+                abs(model.predict(np.array([[safe_co]]))[0] - SAFE_PM25_THRESHOLD)
+            )
+        rows.append(entry)
     return rows
 
 
@@ -105,14 +117,21 @@ def main():
 
     for row in polynomial:
         expected = EXPECTED_POLYNOMIAL_R2[row["model"]]
-        assert abs(row["r2"] - expected) < 5e-7, (
-            f"{row['model']} R2 moved: {row['r2']:.6f} vs published {expected}"
-        )
+        # The cubic normal equation is badly conditioned, so its last digits
+        # drift with BLAS build and row order. A tight bound here would fire on
+        # a different machine and read as a scientific regression when it is
+        # only round-off.
+        tolerance = 1e-5 if row["model"] == "Cubic" else 5e-7
+        if abs(row["r2"] - expected) >= tolerance:
+            raise SystemExit(
+                f"{row['model']} R2 moved: {row['r2']:.8f} vs published {expected}"
+            )
     for pollutant, expected in EXPECTED_EXPONENTIAL_R2.items():
         got = exponential[pollutant]["r2"]
-        assert abs(got - expected) < 5e-7, (
-            f"exponential {pollutant} R2 moved: {got:.6f} vs published {expected}"
-        )
+        if abs(got - expected) >= 5e-7:
+            raise SystemExit(
+                f"exponential {pollutant} R2 moved: {got:.8f} vs published {expected}"
+            )
 
     season = seasonality.run()
     validation_results = validation.run()
@@ -155,7 +174,8 @@ def main():
     print(f"wrote {os.path.relpath(OUT, os.path.join(HERE, '..'))}")
     print(f"  {payload['meta']['hourly_rows']:,} hourly rows, "
           f"{payload['meta']['biweekly_rows']} biweekly rows")
-    print(f"  all published R2 values reproduced")
+    print("  polynomial and exponential R2 match their published values")
+    print("  (validation, seasonality, AQI and Simpson blocks are not covered by that check)")
 
 
 if __name__ == "__main__":

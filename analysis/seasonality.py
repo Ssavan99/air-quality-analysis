@@ -10,6 +10,7 @@ import os
 
 import pandas as pd
 
+from aqi import BEYOND_INDEX as BEYOND_LABEL
 from aqi import category, overall_aqi, pm25_to_aqi
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -71,17 +72,34 @@ def diurnal_profile(frame):
 
 
 def aqi_distribution(frame):
-    """How many hours fall in each AQI category."""
+    """How many calendar days fall in each AQI category.
+
+    The EPA index is defined on 24-hour average concentrations, so it is
+    computed here on daily means rather than on individual hourly readings.
+    Feeding a single hour into a 24-hour breakpoint table produces a number
+    that is not an AQI, and it inflates the tails in both directions.
+    """
+    daily = (
+        frame.set_index("local_time")[["pm2_5", "pm10"]]
+        .resample("D")
+        .mean()
+        .dropna()
+    )
     categories = [
         category(overall_aqi(pm25, pm10))
-        for pm25, pm10 in zip(frame["pm2_5"], frame["pm10"])
+        for pm25, pm10 in zip(daily["pm2_5"], daily["pm10"])
     ]
     counts = pd.Series(categories).value_counts()
     total = int(counts.sum())
+    # Every category is present, including the ones with no days at all, so a
+    # consumer iterating the category list never indexes a missing key.
+    from aqi import CATEGORIES  # local import keeps the module import list short
+
+    names = [name for _low, _high, name, _colour in CATEGORIES] + [BEYOND_LABEL]
     return {
-        "total_hours": total,
-        "counts": {str(name): int(value) for name, value in counts.items()},
-        "percent": {str(name): round(100 * int(value) / total, 2) for name, value in counts.items()},
+        "total_days": total,
+        "counts": {name: int(counts.get(name, 0)) for name in names},
+        "percent": {name: round(100 * int(counts.get(name, 0)) / total, 2) for name in names},
     }
 
 
@@ -95,7 +113,9 @@ def run():
     # cover every month the same number of times, so name the season rather
     # than crowning a single month.
     winter = [m for m in monthly if m["month"] in (11, 12, 1, 2)]
-    summer = [m for m in monthly if m["month"] in (6, 7, 8, 9)]
+    # Jul-Sep. June is pre-monsoon in Delhi and runs markedly higher, so
+    # including it would understate the contrast it is meant to measure.
+    summer = [m for m in monthly if m["month"] in (7, 8, 9)]
     winter_mean = sum(m["mean_pm25"] for m in winter) / len(winter)
     summer_mean = sum(m["mean_pm25"] for m in summer) / len(summer)
     peak_hour = max(diurnal, key=lambda h: h["mean_pm25"])
@@ -105,18 +125,22 @@ def run():
         "diurnal": diurnal,
         "aqi_distribution": aqi_distribution(frame),
         "summary": {
-            "worst_month": worst_month["name"],
-            "worst_month_pm25": worst_month["mean_pm25"],
-            "best_month": best_month["name"],
-            "best_month_pm25": best_month["mean_pm25"],
-            "seasonal_ratio": round(worst_month["mean_pm25"] / best_month["mean_pm25"], 2),
+            # Deliberately no "worst month". Month coverage is uneven (three
+            # years for Jan/Nov/Dec, two for the rest) and February rests on
+            # two readings 143 ug/m3 apart, so the ranking is unstable: drop
+            # one February and December takes the top spot. The season-level
+            # comparison below is the figure that survives.
             "winter_mean_pm25": round(winter_mean, 2),
-            "summer_mean_pm25": round(summer_mean, 2),
-            "winter_summer_ratio": round(winter_mean / summer_mean, 2),
+            "winter_months": "Nov-Feb",
+            "monsoon_mean_pm25": round(summer_mean, 2),
+            "monsoon_months": "Jul-Sep",
+            "winter_monsoon_ratio": round(winter_mean / summer_mean, 2),
             "timezone": "IST (UTC+5:30); source timestamps are UTC",
             "peak_hour": peak_hour["hour"],
+            "peak_hour_label": f"{peak_hour['hour']:02d}:30",
             "peak_hour_pm25": peak_hour["mean_pm25"],
             "trough_hour": trough_hour["hour"],
+            "trough_hour_label": f"{trough_hour['hour']:02d}:30",
             "trough_hour_pm25": trough_hour["mean_pm25"],
             "diurnal_ratio": round(peak_hour["mean_pm25"] / trough_hour["mean_pm25"], 2),
         },
@@ -126,16 +150,18 @@ def run():
 if __name__ == "__main__":
     result = run()
     s = result["summary"]
-    print(f"Worst month: {s['worst_month']} at {s['worst_month_pm25']} ug/m3")
-    print(f"Best month:  {s['best_month']} at {s['best_month_pm25']} ug/m3")
-    print(f"Seasonal swing: {s['seasonal_ratio']}x")
-    print(f"Winter (Nov-Feb) mean {s['winter_mean_pm25']} vs monsoon (Jun-Sep) "
-          f"{s['summer_mean_pm25']} ug/m3 -> {s['winter_summer_ratio']}x")
-    print(f"Daily peak {s['peak_hour']:02d}:00 IST at {s['peak_hour_pm25']} ug/m3, "
-          f"trough {s['trough_hour']:02d}:00 IST at {s['trough_hour_pm25']} ug/m3 "
+    print(f"Winter ({s['winter_months']}) mean {s['winter_mean_pm25']} vs monsoon "
+          f"({s['monsoon_months']}) {s['monsoon_mean_pm25']} ug/m3 "
+          f"-> {s['winter_monsoon_ratio']}x")
+    print(f"Daily peak {s['peak_hour_label']} IST at {s['peak_hour_pm25']} ug/m3, "
+          f"trough {s['trough_hour_label']} IST at {s['trough_hour_pm25']} ug/m3 "
           f"({s['diurnal_ratio']}x)")
     print("Times are IST; the source timestamps are UTC (see module docstring).")
-    print("\nHours per AQI category:")
+    print("No single worst month is reported: month coverage is uneven and the")
+    print("February ranking rests on two readings 143 ug/m3 apart.")
+
+    print("\nDays per AQI category (the EPA index is a 24-hour statistic):")
     dist = result["aqi_distribution"]
     for name, count in sorted(dist["counts"].items(), key=lambda kv: -kv[1]):
-        print(f"  {name:<32}{count:>7,}  ({dist['percent'][name]:>5.2f}%)")
+        print(f"  {name:<32}{count:>6,}  ({dist['percent'][name]:>5.2f}%)")
+    print(f"  {'total':<32}{dist['total_days']:>6,}")

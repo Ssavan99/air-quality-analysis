@@ -99,8 +99,15 @@ def colour(aqi):
 
 
 def overall_aqi(pm25, pm10):
-    """Overall AQI is the worst of the sub-indices, per EPA."""
-    sub = [a for a in (pm25_to_aqi(pm25), pm10_to_aqi(pm10)) if a is not None]
-    if not sub:
+    """Overall AQI is the worst of the sub-indices, per EPA.
+
+    A sub-index of None means that pollutant is *above* the top of the scale,
+    so it is the worst one by definition. Dropping it and taking the max of
+    what remains would report a lower index than the truth, and would do so
+    precisely on the dirtiest hours. If either sub-index is off the scale, the
+    overall value is off the scale.
+    """
+    sub_indices = (pm25_to_aqi(pm25), pm10_to_aqi(pm10))
+    if any(value is None for value in sub_indices):
         return None
-    return max(sub)
+    return max(sub_indices)

@@ -66,14 +66,38 @@ def simpsons_method(y, x):
 
 
 def cumulative_exposure(frame):
-    """Yearly cumulative exposure per pollutant, over sixths of each year."""
+    """Yearly cumulative exposure per pollutant, over sixths of each year.
+
+    This reproduces the original notebook exactly, including its limitations,
+    which the returned coverage block makes explicit rather than hiding:
+
+    - The record starts in November 2020 and ends in January 2023, so 2020 and
+      2023 are stubs. Every year is nonetheless integrated over the same
+      x = linspace(1, 6) axis, so a two-month year and a twelve-month year
+      produce numbers on the same scale. They are not comparable, and 2020
+      scores highest for NO2 purely because five weeks of December is not a
+      year.
+    - With an even point count the last value is duplicated to force an odd
+      one, which double-weights the final month.
+    - Because the axis is fixed, the result is about five times the mean of the
+      inputs. As a summary of a year it carries no more information than the
+      mean does.
+    """
     frame = frame.copy()
     frame["date"] = pd.to_datetime(frame["date"])
     frame["year"] = frame["date"].dt.year
     frame["month"] = frame["date"].dt.month
     monthly = frame.groupby(["year", "month"])[SIMPSON_POLLUTANTS].mean().reset_index()
 
-    out = {}
+    coverage = {
+        int(year): {
+            "months": int(group["month"].nunique()),
+            "complete": bool(group["month"].nunique() >= 12),
+        }
+        for year, group in monthly.groupby("year")
+    }
+
+    out = {"coverage": coverage}
     for pollutant in SIMPSON_POLLUTANTS:
         per_year = {}
         for year in monthly["year"].unique():
