@@ -2,7 +2,7 @@ import numpy as np;
 from scipy.optimize import fsolve
 
 class QuadraticRegression: 
-  def _init_(self):
+  def __init__(self):
     self.coefficients = None
 
   def fit(self, X, y): 

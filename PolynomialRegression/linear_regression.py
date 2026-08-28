@@ -1,7 +1,7 @@
 import numpy as np;
 
 class LinearRegression: 
-  def _init_(self):
+  def __init__(self):
     self.coefficients = None
 
   def fit(self, X, y): 

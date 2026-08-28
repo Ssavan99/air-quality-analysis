@@ -5,7 +5,7 @@ from scipy.optimize import fsolve
 warnings.filterwarnings("ignore", message="The iteration is not making good progress")
 
 class CubicRegression: 
-  def _init_(self):
+  def __init__(self):
     self.coefficients = None
 
   def fit(self, X, y): 
