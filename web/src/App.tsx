@@ -1,4 +1,6 @@
+import { useState } from "react"
 import { ChartCard } from "@/components/ChartCard"
+import { Methodology } from "@/components/Methodology"
 import { Section } from "@/components/Section"
 import { StatTile } from "@/components/StatTile"
 import { ThemeToggle } from "@/components/ThemeToggle"
@@ -32,6 +34,8 @@ const hourlyCubicCond = validation.hourly.conditioning.Cubic
 const hourlyCubic = validation.hourly.models.find((m) => m.model === "Cubic")!
 
 export default function App() {
+  const [tab, setTab] = useState<"results" | "methodology">("results")
+
   return (
     <div className="min-h-dvh">
       <header className="bg-background/85 sticky top-0 z-20 border-b backdrop-blur">
@@ -42,10 +46,50 @@ export default function App() {
               {meta.hourly_rows.toLocaleString("en-GB")} hourly readings · 2020–2023
             </p>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <div role="tablist" className="bg-muted inline-flex items-center gap-0.5 rounded-lg p-[3px]">
+              {(
+                [
+                  ["results", "Results"],
+                  ["methodology", "How it works"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  role="tab"
+                  aria-selected={tab === value}
+                  onClick={() => setTab(value)}
+                  className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+                    tab === value
+                      ? "bg-background text-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
+      {tab === "methodology" ? (
+        <main className="mx-auto max-w-5xl px-4 py-10 sm:py-14">
+          <Badge variant="secondary" className="mb-3 font-mono text-xs">
+            Under the hood
+          </Badge>
+          <h1 className="text-3xl leading-tight font-semibold tracking-tight sm:text-4xl">
+            How the analysis actually works
+          </h1>
+          <p className="text-muted-foreground mt-4 max-w-[68ch] leading-relaxed">
+            The models, the numerical methods behind them, and the checks that keep the two in sync.
+          </p>
+          <div className="mt-10">
+            <Methodology />
+          </div>
+        </main>
+      ) : (
       <main className="mx-auto max-w-5xl space-y-14 px-4 py-10 sm:py-14">
         {/* Hero */}
         <div>
@@ -431,6 +475,7 @@ export default function App() {
           </div>
         </Section>
       </main>
+      )}
 
       <footer className="mt-8 border-t">
         <div className="text-muted-foreground mx-auto max-w-5xl space-y-3 px-4 py-8 text-xs leading-relaxed">
