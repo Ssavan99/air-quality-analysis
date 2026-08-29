@@ -42,9 +42,11 @@ export default function App() {
       <header className="bg-background/85 sticky top-0 z-20 border-b backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-3 sm:gap-4">
           <div className="flex min-w-0 items-center gap-2">
-            <Wind className="text-primary size-5 shrink-0" strokeWidth={2.5} aria-hidden="true" />
+            <Wind className="text-primary size-5 shrink-0 sm:size-6" strokeWidth={2.5} aria-hidden="true" />
             <div className="min-w-0">
-              <p className="truncate font-mono text-lg leading-none font-bold tracking-tight">Vayu</p>
+              <p className="truncate font-mono text-lg leading-none font-bold tracking-tight sm:text-2xl">
+                Airlytics
+              </p>
               <p className="text-muted-foreground truncate text-xs">
                 {meta.hourly_rows.toLocaleString("en-GB")} hourly readings · Delhi, 2020–2023
               </p>
@@ -495,7 +497,7 @@ export default function App() {
             Every figure on this page is generated from the data by{" "}
             <code className="font-mono">analysis/export_results.py</code>. None are typed in by hand.
           </p>
-          <p>Vayu is built by Akshita Goel, Morenzo MinarWidjaja and Savan Patel.</p>
+          <p>Airlytics is built by Akshita Goel, Morenzo MinarWidjaja and Savan Patel.</p>
         </div>
       </footer>
     </div>

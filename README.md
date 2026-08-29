@@ -1,4 +1,4 @@
-# Delhi Air Quality
+# Airlytics
 
 Polynomial regression, exponential regression and Simpson's rule applied to 18,776 hourly
 pollution readings from Delhi. The interesting result is not which model fits best — it is
