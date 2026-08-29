@@ -1,3 +1,4 @@
+import { Wind } from "lucide-react"
 import { useState } from "react"
 import { ChartCard } from "@/components/ChartCard"
 import { Methodology } from "@/components/Methodology"
@@ -39,12 +40,15 @@ export default function App() {
   return (
     <div className="min-h-dvh">
       <header className="bg-background/85 sticky top-0 z-20 border-b backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-          <div className="min-w-0">
-            <p className="truncate font-mono text-sm font-semibold">Delhi Air Quality</p>
-            <p className="text-muted-foreground truncate text-xs">
-              {meta.hourly_rows.toLocaleString("en-GB")} hourly readings · 2020–2023
-            </p>
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-3 sm:gap-4">
+          <div className="flex min-w-0 items-center gap-2">
+            <Wind className="text-primary size-5 shrink-0" strokeWidth={2.5} aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="truncate font-mono text-lg leading-none font-bold tracking-tight">Vayu</p>
+              <p className="text-muted-foreground truncate text-xs">
+                {meta.hourly_rows.toLocaleString("en-GB")} hourly readings · Delhi, 2020–2023
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <div role="tablist" className="bg-muted inline-flex items-center gap-0.5 rounded-lg p-[3px]">
@@ -59,7 +63,7 @@ export default function App() {
                   role="tab"
                   aria-selected={tab === value}
                   onClick={() => setTab(value)}
-                  className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+                  className={`rounded-md px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-colors sm:px-3 sm:text-sm ${
                     tab === value
                       ? "bg-background text-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
@@ -79,7 +83,7 @@ export default function App() {
           <Badge variant="secondary" className="mb-3 font-mono text-xs">
             Under the hood
           </Badge>
-          <h1 className="text-3xl leading-tight font-semibold tracking-tight sm:text-4xl">
+          <h1 className="text-4xl leading-[1.05] font-bold tracking-tight sm:text-5xl lg:text-6xl">
             How the analysis actually works
           </h1>
           <p className="text-muted-foreground mt-4 max-w-[68ch] leading-relaxed">
@@ -96,7 +100,7 @@ export default function App() {
           <Badge variant="secondary" className="mb-3 font-mono text-xs">
             Numerical methods on real data
           </Badge>
-          <h1 className="text-3xl leading-tight font-semibold tracking-tight sm:text-4xl">
+          <h1 className="text-4xl leading-[1.05] font-bold tracking-tight sm:text-5xl lg:text-6xl">
             Three ways to model Delhi&rsquo;s air, and what each one gets wrong
           </h1>
           <p className="text-muted-foreground mt-4 max-w-[68ch] leading-relaxed">
@@ -491,7 +495,7 @@ export default function App() {
             Every figure on this page is generated from the data by{" "}
             <code className="font-mono">analysis/export_results.py</code>. None are typed in by hand.
           </p>
-          <p>Built by Akshita Goel, Morenzo MinarWidjaja and Savan Patel.</p>
+          <p>Vayu is built by Akshita Goel, Morenzo MinarWidjaja and Savan Patel.</p>
         </div>
       </footer>
     </div>
