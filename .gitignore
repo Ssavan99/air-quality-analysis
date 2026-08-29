@@ -14,8 +14,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -172,3 +172,8 @@ web/dist/
 # Local working documents — never published
 SYNC.md
 PLAN.md
+
+# The Python packaging rules above are anchored to the repository root on
+# purpose: an unanchored `lib/` also matches web/src/lib, which silently kept
+# the front end's shared modules out of the commit and broke the Pages build.
+!web/src/lib/
