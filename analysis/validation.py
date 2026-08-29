@@ -10,6 +10,7 @@ This module also refits on the full hourly series. The published analysis uses
 58 biweekly averages derived from 18,776 hourly rows.
 """
 
+import math
 import os
 import sys
 
@@ -27,6 +28,11 @@ from quadratic_regression import QuadraticRegression  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "..", "Data")
+
+# The normal-equation solution and a least-squares solve agree far more
+# closely than this on every build tested; the bound is deliberately loose so
+# it states something true everywhere rather than something exact here.
+LSTSQ_AGREEMENT_BOUND = 1e-6
 
 MODELS = [
     ("Linear", LinearRegression),
@@ -92,18 +98,32 @@ def conditioning(X, y):
     out = {}
     for degree, name in ((1, "Linear"), (2, "Quadratic"), (3, "Cubic")):
         design = np.hstack([np.ones((len(X), 1))] + [X ** k for k in range(1, degree + 1)])
-        normal_cond = float(np.linalg.cond(design.T @ design))
+        # Two significant figures. A condition number is an order-of-magnitude
+        # diagnostic, it is only ever quoted as one, and its own tail digits
+        # move with the BLAS build.
+        normal_cond = float(f"{np.linalg.cond(design.T @ design):.1e}")
 
         # Same fit, solved stably, to measure the damage rather than assume it.
         inverted = np.linalg.inv(design.T @ design).dot(design.T).dot(y)
         least_squares = np.linalg.lstsq(design, y, rcond=None)[0]
+        # This is a difference between two nearly-equal numbers, so its own
+        # trailing digits are cancellation noise. It is only ever quoted as an
+        # order of magnitude, so it is reported as one.
         agreement = float(
             np.max(np.abs(inverted - least_squares) / np.maximum(np.abs(least_squares), 1e-30))
         )
+        # This value is not a stable measurement. It is the difference between
+        # two nearly-equal solutions, so it is cancellation noise, and its
+        # magnitude tracks the BLAS build: on this machine numpy 1.26 gives
+        # ~2e-9 for the cubic and numpy 2.5 gives ~2e-8. Quoting it would be
+        # quoting the library version. What is defensible on any build is a
+        # bound, which is checked below rather than assumed.
+        within_bound = agreement < LSTSQ_AGREEMENT_BOUND
         out[name] = {
             "cond_normal_equation": normal_cond,
-            "cond_design": float(np.linalg.cond(design)),
-            "max_relative_disagreement_vs_lstsq": agreement,
+            "cond_design": float(f"{np.linalg.cond(design):.1e}"),
+            "agrees_with_lstsq_within": LSTSQ_AGREEMENT_BOUND,
+            "agreement_bound_holds": bool(within_bound),
             "r2_inv": float(_r2(y, design @ inverted)),
             "r2_lstsq": float(_r2(y, design @ least_squares)),
         }
@@ -255,13 +275,23 @@ def report(results):
         "  support six decimal places. The ordering is the finding, not the digits."
     )
 
-    print("\nConditioning (biweekly), and what it actually costs:")
-    print(f"{'model':<12}{'cond(X^T X)':>14}{'vs lstsq':>12}{'R2 (inv)':>12}{'R2 (lstsq)':>12}")
-    for name, block in results["biweekly"]["conditioning"].items():
+    for which in ("biweekly", "hourly"):
+        print(f"\nConditioning ({which}), and what it actually costs:")
+        print(f"{'model':<12}{'cond(X^T X)':>14}{'agrees':>9}{'R2 (inv)':>12}{'R2 (lstsq)':>12}")
+        for name, block in results[which]["conditioning"].items():
+            verdict = "yes" if block["agreement_bound_holds"] else "NO"
+            print(
+                f"{name:<12}{block['cond_normal_equation']:>14.1e}{verdict:>9}"
+                f"{block['r2_inv']:>12.6f}{block['r2_lstsq']:>12.6f}"
+            )
+    if not results["hourly"]["conditioning"]["Cubic"]["agreement_bound_holds"]:
         print(
-            f"{name:<12}{block['cond_normal_equation']:>14.2e}"
-            f"{block['max_relative_disagreement_vs_lstsq']:>12.1e}"
-            f"{block['r2_inv']:>12.6f}{block['r2_lstsq']:>12.6f}"
+            "\n  Note the hourly cubic: the normal equation and a least-squares solve no\n"
+            "  longer agree at all there, and the two R2 values part company in the fourth\n"
+            "  decimal. On 18,776 rows cond(X^T X) reaches ~2e24 and inverting it stops\n"
+            "  being a valid way to fit a cubic. The degree comparison below still holds\n"
+            "  under either solver, but the hourly cubic's exact figure should not be\n"
+            "  quoted to four decimals from this method."
         )
 
     placebo = results["aggregation_placebo"]

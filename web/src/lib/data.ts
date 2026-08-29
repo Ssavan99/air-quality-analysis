@@ -72,7 +72,8 @@ export type HourPoint = {
 export type Conditioning = {
   cond_normal_equation: number
   cond_design: number
-  max_relative_disagreement_vs_lstsq: number
+  agrees_with_lstsq_within: number
+  agreement_bound_holds: boolean
   r2_inv: number
   r2_lstsq: number
 }

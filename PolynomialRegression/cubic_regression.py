@@ -36,6 +36,9 @@ class CubicRegression(PolynomialModel):
       warnings.filterwarnings("ignore", message="The iteration is not making good progress")
       CO_safe, _info, ier, msg = fsolve(cubic_equation, x0=0, full_output=True)
     self.inverse_converged = (ier == 1)
-    self.inverse_message = msg.strip()
+    # scipy wraps this message across lines and the indentation differs
+    # between releases, so collapse the whitespace rather than exporting the
+    # library's formatting.
+    self.inverse_message = " ".join(msg.split())
 
     return CO_safe[0]

@@ -32,7 +32,7 @@ class QuadraticRegression(PolynomialModel):
       warnings.filterwarnings("ignore", message="The iteration is not making good progress")
       co_solution, _info, ier, msg = fsolve(equation, x0=0, full_output=True)
     self.inverse_converged = (ier == 1)
-    self.inverse_message = msg.strip()
+    self.inverse_message = " ".join(msg.split())
 
     return co_solution[0]
   

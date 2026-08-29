@@ -7,6 +7,7 @@ typed in by hand. Run this after changing any analysis code:
 """
 
 import json
+import math
 import os
 import sys
 
@@ -29,6 +30,29 @@ DATA = os.path.join(HERE, "..", "Data")
 OUT = os.path.join(HERE, "..", "web", "src", "data", "results.json")
 
 SAFE_PM25_THRESHOLD = 15
+
+# Coefficients come out of an ill-conditioned normal equation, so their tail
+# digits track the BLAS build rather than the data: numpy 1.26 and 2.5 on this
+# machine disagree from about the twelfth significant figure. The conditioning
+# analysis puts the honest precision of the cubic at roughly eight, so that is
+# what gets exported. It is still more than the fit can justify, and it makes
+# the file identical across environments - regenerating it produces no diff
+# unless something real moved.
+SIGNIFICANT_FIGURES = 8
+
+
+def _stabilise(value):
+    """Round every float in a nested structure to SIGNIFICANT_FIGURES."""
+    if isinstance(value, float):
+        if value == 0 or not math.isfinite(value):
+            return value
+        exponent = math.floor(math.log10(abs(value)))
+        return round(value, SIGNIFICANT_FIGURES - 1 - exponent)
+    if isinstance(value, dict):
+        return {k: _stabilise(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_stabilise(v) for v in value]
+    return value
 
 # Published figures from the notebooks. The export asserts against these so a
 # change in the analysis cannot silently rewrite what the project claims.
@@ -71,9 +95,12 @@ def polynomial_block(frame):
         if converged is not None:
             entry["solver_converged"] = bool(converged)
             entry["solver_message"] = getattr(model, "inverse_message", "")
-            entry["residual_at_returned_value"] = float(
-                abs(model.predict(np.array([[safe_co]]))[0] - SAFE_PM25_THRESHOLD)
-            )
+            residual = float(abs(model.predict(np.array([[safe_co]]))[0] - SAFE_PM25_THRESHOLD))
+            # A residual at the 1e-15 level is zero as far as float64 is
+            # concerned - the solver landed on a real root - and its exact
+            # value is noise that changes between BLAS builds. Report it as
+            # zero so the meaningful case (the cubic's 1.84) stands out.
+            entry["residual_at_returned_value"] = 0.0 if residual < 1e-9 else residual
         rows.append(entry)
     return rows, models
 
@@ -133,6 +160,19 @@ def main():
     season = seasonality.run()
     validation_results = validation.run()
 
+    # The README's conditioning claim is about the fortnightly fit, so that is
+    # what is enforced. The hourly cubic deliberately fails this bound - the
+    # normal equation genuinely breaks down there - and that is exported as a
+    # finding rather than treated as a regression.
+    biweekly_cond = validation_results["biweekly"]["conditioning"]
+    for name, entry in biweekly_cond.items():
+        if not entry["agreement_bound_holds"]:
+            raise SystemExit(
+                f"biweekly/{name}: normal equation and lstsq now disagree by more than "
+                f"{entry['agrees_with_lstsq_within']:.0e}; the README claim no longer holds"
+            )
+
+
     payload = {
         "meta": {
             "city": "Delhi, India",
@@ -170,7 +210,7 @@ def main():
 
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as handle:
-        json.dump(payload, handle, indent=2)
+        json.dump(_stabilise(payload), handle, indent=2)
         handle.write("\n")
 
     print(f"wrote {os.path.relpath(OUT, os.path.join(HERE, '..'))}")

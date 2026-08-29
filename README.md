@@ -119,9 +119,15 @@ cd web && npm install && npm run dev
 - **"The cubic overfits" is a claim about 58 points.** On the full hourly series the gap
   collapses and the cubic very slightly wins on cross-validation. With enough data the degree
   stops mattering.
-- **The cubic normal equation is poorly conditioned** (cond(XᵀX) ≈ 10²⁴). It still agrees
-  with a least-squares solve to 2×10⁻⁹ relative, so the reported R² is sound — but the method
-  has no margin left, and centring the predictor would remove the risk.
+- **The cubic normal equation is poorly conditioned** (cond(XᵀX) ≈ 10²⁴). On the 58 fortnightly
+  points it still agrees with a least-squares solve to better than 10⁻⁶ and gives an identical
+  R², so that figure is sound — but the method has no margin left.
+- **On the hourly series it runs out of margin entirely.** At 18,776 rows the cubic's
+  normal-equation solution stops agreeing with least squares altogether, and the two R² values
+  diverge in the fourth decimal (0.878264 against 0.878090). The cubic still edges the linear
+  model under either solver, so the comparison holds — but the hourly cubic figure should not be
+  quoted to four decimals from this method. Centring the predictor, or solving by QR, removes
+  the problem.
 - **The timezone is inferred**, not documented by the source. It is deduced from the shape of
   the daily cycle: read as stored, the cycle peaks and troughs at implausible times for a city.
 - **One city, 26 months**, from a dataset that does not document its monitoring stations.

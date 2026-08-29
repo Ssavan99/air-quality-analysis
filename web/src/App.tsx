@@ -16,7 +16,6 @@ import { categoryColour, formatNumber, results } from "@/lib/data"
 
 const { meta, seasonality, validation, polynomial } = results
 
-const hourlyLinear = validation.hourly.models.find((m) => m.model === "Linear")!
 const linearPoly = polynomial.find((p) => p.model === "Linear")!
 const quadraticPoly = polynomial.find((p) => p.model === "Quadratic")!
 const cubicPoly = polynomial.find((p) => p.model === "Cubic")!
@@ -29,6 +28,7 @@ const cvMean = (m: string) => (repeated[m] as { mean_cv_r2: number }).mean_cv_r2
 const cvSd = (m: string) => (repeated[m] as { sd: number }).sd
 const placebo = validation.aggregation_placebo
 const cubicCond = validation.biweekly.conditioning.Cubic
+const hourlyCubicCond = validation.hourly.conditioning.Cubic
 const hourlyCubic = validation.hourly.models.find((m) => m.model === "Cubic")!
 
 export default function App() {
@@ -215,11 +215,13 @@ export default function App() {
               <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
                 Condition number of XᵀX for the cubic normal equation, against the roughly 1×10¹⁶
                 double precision carries. That sounds fatal, and it would be easy to claim the
-                coefficients are meaningless &mdash; but it is a worst-case bound. Solving the same
-                system by least squares instead of inverting agrees to{" "}
-                {cubicCond.max_relative_disagreement_vs_lstsq.toExponential(0)} relative, so the R²
-                above is sound. What it does mean is that the method has no headroom: the trailing
-                digits would not survive a different machine.
+                coefficients are meaningless &mdash; but on these 58 points it is a worst-case
+                bound, not the realised error. Solving the same system by least squares instead of
+                inverting agrees to better than{" "}
+                {cubicCond.agrees_with_lstsq_within.toExponential(0)}, and both give R²{" "}
+                {formatNumber(cubicCond.r2_lstsq, 6)}, so the figure above is sound. What it means
+                is that the method has no headroom left &mdash; and on the hourly series it runs
+                out entirely (below).
               </p>
             </div>
           </div>
@@ -278,14 +280,23 @@ export default function App() {
             height={330}
             note={
               <>
-                The overfit gap collapses to about{" "}
+                The overfit gap collapses to roughly{" "}
                 {formatNumber(hourlyCubic.overfit_gap, 4)}, and the cubic now very slightly{" "}
-                <em>wins</em> on cross-validation ({formatNumber(hourlyCubic.cv_r2, 4)} against{" "}
-                {formatNumber(hourlyLinear.cv_r2, 4)}). That is worth stating plainly: &ldquo;the
-                cubic overfits&rdquo; is a claim about {meta.biweekly_rows} points, not about the
-                relationship itself. With 18,776 rows there is enough data to support the extra
-                terms, and the degree stops mattering. On the fortnightly data the project actually
-                uses, linear remains the right choice.
+                <em>wins</em> on cross-validation. That is worth stating plainly: &ldquo;the cubic
+                overfits&rdquo; is a claim about {meta.biweekly_rows} points, not about the
+                relationship itself. With {meta.hourly_rows.toLocaleString("en-GB")} rows there is
+                enough data to support the extra terms and the degree stops mattering. On the
+                fortnightly data the project actually uses, linear remains the right choice.
+                <br />
+                <br />
+                <strong>One caveat on this chart.</strong> At this sample size the cubic&rsquo;s
+                normal equation has broken down: cond(XᵀX) reaches{" "}
+                {hourlyCubicCond.cond_normal_equation.toExponential(0)} and inverting it no longer
+                agrees with a least-squares solve at all, with the two R² values parting company in
+                the fourth decimal ({formatNumber(hourlyCubicCond.r2_inv, 6)} against{" "}
+                {formatNumber(hourlyCubicCond.r2_lstsq, 6)}). The cubic still edges the linear model
+                under either solver, so the conclusion holds &mdash; but its exact bar here should
+                not be read to four decimals.
               </>
             }
           >
