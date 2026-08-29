@@ -1,88 +1,150 @@
-# Air Quality Analysis
+# Delhi Air Quality
 
-This project analyzes various pollutant data using Polynomial regression, Exponential Regression, and Simpson's Method. 
+Polynomial regression, exponential regression and Simpson's rule applied to 18,776 hourly
+pollution readings from Delhi. The interesting result is not which model fits best — it is
+that the model which *looks* best is the one you should throw away.
 
-Presentation video link: https://www.youtube.com/watch?v=yVF_1T74Hq4 
+**[Explore the charts →](https://ssavan99.github.io/air-quality-analysis/)**
 
-## Description
-### Exponential Regression
-Implementation of the algorithm in ExponentialRegression/exponentialRegression.ipynb along with all the metrics. Relevant graph images are saved within the folder.
+![In-sample versus cross-validated R² for the three polynomial models, and the share of days in each US EPA air quality category](docs/headline.png)
 
-### Polynomial Regression
-Implementation of all three (Linear, Quadratic, Cubic) in the PolynomialRegression folder through main.py. All the metrics are generated through analysis.py.
+## What it found
 
-### Simpson's method
-Implementation of the algorithm in Simpsonsmethod folder along with all the metrics. Relevant graph images are saved within the folder.
+**The best-fitting model is the wrong one.** Fitting CO against PM2.5 with polynomials of
+increasing degree, the cubic scores the highest R² — 0.9437 against the linear model's
+0.9423. In-sample R² cannot fall when you add a term, so that ranking was never evidence of
+anything. Under cross-validation the order inverts:
 
-Follow the steps below to set up and run the program on the CSCE server.
+| Model | In-sample R² | Cross-validated R² | Gap |
+|---|---|---|---|
+| **Linear** | 0.9423 | **0.929 ± 0.008** | 0.013 |
+| Quadratic | 0.9423 | 0.923 ± 0.010 | 0.020 |
+| Cubic | **0.9437** | 0.919 ± 0.012 | 0.024 |
 
-## Common Execution steps 
+Cross-validated figures are means over 200 repeats of 5-fold CV. Linear scores best in 99%
+of them. The cubic is not better; it is memorising 58 points.
 
-### 1. Download and Extract the Files
+**The cubic's headline prediction is a solver failure, not a prediction.** Asked what CO
+level would bring PM2.5 to the 15 µg/m³ safe threshold, it returns −350.51 µg/m³. That is
+not a negative-concentration *result*: the root-finder reports it failed to converge, and
+the returned value leaves a residual of 1.84 — it is not a root at all. The linear and
+quadratic models answer at 658 and 656 µg/m³.
 
-run the following commands to extract the ZIP:
+**The two R² values answer different questions.** Fitting the 58 fortnightly means scores
+0.942; fitting all 18,776 hourly rows scores 0.878. The tempting explanation — averaging
+removes noise — is testable and wrong. Averaging the same rows into 58 *random* groups of
+identical sizes scores 0.871, back at the hourly figure. The gain comes from aggregating
+over time: most PM2.5 variance sits within a fortnight, where CO co-varies weakly, and
+averaging discards exactly that part.
+
+**Not one Good day.** Across 789 days the record contains no day in the EPA's Good category,
+and 26.2% of days sit above the top of the scale entirely, where the EPA defines no index.
+
+**The cycles the averaging erased.** Winter runs 3.3× the monsoon months. The daily cycle
+peaks at 22:30 IST and troughs at 14:30 IST, a 2.9× swing — invisible in a fortnightly mean.
+
+## Running it
+
+Requires Python 3.9+ and, for the site, Node 20.19+ (or 22.12+) — Vite 8 will refuse to
+run on anything older.
 
 ```bash
-unzip AirQualityAnalysis.zip -d AirQualityAnalysis
-cd AirQualityAnalysis
-```
-
-### 2. Create a virtual environment 
-```bash 
 python3 -m venv env
-source env/bin/activate
-```
-
-### 3. Install pip 
-```bash
-python3 -m ensurepip --upgrade
-python3 -m pip install --upgrade pip
-```
-
-### 4. Install necessary libraries from requirements.txt 
-```bash
+source env/bin/activate          # Windows: env\Scripts\activate
 python3 -m pip install -r requirements.txt
 ```
 
-## Polynomial Regression Execution steps
+Reproduce the analysis:
 
-### 5. cd into the Polynomial Regression directory
 ```bash
-cd PolynomialRegression
+python3 analysis/validation.py
 ```
 
-### 6. Run the program
+Prints the model comparison, the conditioning check, the aggregation placebo test and the
+repeated cross-validation. Takes about a minute — the placebo test fits 200 models.
+
 ```bash
-python3 main.py
+cd analysis && python3 seasonality.py
 ```
 
-### 7. To compare the ($R^2$) score and Computational Complexity for the different polynomial degrees
-```bash 
-python3 analysis.py
-```
+Prints the seasonal and daily profiles and the AQI category distribution.
 
-## Exponential Regression and Simpson's Method exeution steps
-
-### 5. Run Jupyter Notebook on the Server
 ```bash
-jupyter notebook --no-browser --port=8888
+cd PolynomialRegression && python3 main.py     # the three fits and their predictions
+cd PolynomialRegression && python3 analysis.py # model comparison
 ```
 
-### 6. Forward the Port to Your Local Machine (can jump to step 7 step if running on personal computer and CSCE server)
+The three notebooks (`dataConverter.ipynb`, `ExponentialRegression/`, `SimpsonsMethod/`) run
+top to bottom in a clean kernel:
+
 ```bash
-ssh -L 8888:localhost:8888 your_username@university_server_address
+python3 -m jupyter notebook
 ```
 
-### 7. Access the Notebook
-Open the notebook on the browser using: 
-Copy and paste the link shown on the server terminal 
-or 
-go to "http://localhost:8888" and copy and paste the token from the Jupyter Notebook output (shown on the server terminal)
+Regenerate everything the site reads, plus the figure above:
 
+```bash
+python3 analysis/export_results.py
+python3 analysis/make_figure.py
+```
 
-### 8. Run the Notebook
-Navigate to the ExponentialRegression and SimpsonsMethod directory in the Jupyter interface and open the .ipynb file. Run all cells.
+`export_results.py` regenerates the whole file, and refuses to write if a **polynomial or
+exponential R²** has moved from the value this README quotes. That guard does not extend to
+the validation, AQI, seasonality or Simpson blocks — those are regenerated without a
+tripwire, and the script says so when it runs.
 
-### Simpler method to run without CSCE server: Upload the notebooks and csv file to Google Colab or Jupyter Notebooks to run them.
+Run the site:
 
-### Note: All the results already visible in the .ipynb files for Exponential Regression and Simpson's Method
+```bash
+cd web && npm install && npm run dev
+```
+
+## Layout
+
+| Path | What it is |
+|---|---|
+| `Data/` | The dataset and its licence — read `Data/README.md` before reusing it |
+| `analysis/` | AQI, validation, seasonality, and the export that feeds the site |
+| `PolynomialRegression/` | Linear, quadratic and cubic fits by normal equation |
+| `ExponentialRegression/` | Exponential fitting against each pollutant |
+| `SimpsonsMethod/` | Composite Simpson's rule for cumulative exposure |
+| `web/` | The static site |
+
+## Limitations
+
+- **Correlation, not causation.** CO predicts PM2.5 well because both come largely from
+  combustion. Reducing CO would not mechanically reduce PM2.5.
+- **The safe-threshold figures are extrapolation.** The 15 µg/m³ target sits far below
+  anything observed; the lowest fortnightly mean in the record is 77 µg/m³.
+- **"The cubic overfits" is a claim about 58 points.** On the full hourly series the gap
+  collapses and the cubic very slightly wins on cross-validation. With enough data the degree
+  stops mattering.
+- **The cubic normal equation is poorly conditioned** (cond(XᵀX) ≈ 10²⁴). On the 58 fortnightly
+  points it still agrees with a least-squares solve to better than 10⁻⁶ and gives an identical
+  R², so that figure is sound — but the method has no margin left.
+- **On the hourly series it runs out of margin entirely.** At 18,776 rows the cubic's
+  normal-equation solution stops agreeing with least squares altogether, and the two R² values
+  diverge in the fourth decimal (0.878264 against 0.878090). The cubic still edges the linear
+  model under either solver, so the comparison holds — but the hourly cubic figure should not be
+  quoted to four decimals from this method. Centring the predictor, or solving by QR, removes
+  the problem.
+- **The timezone is inferred**, not documented by the source. It is deduced from the shape of
+  the daily cycle: read as stored, the cycle peaks and troughs at implausible times for a city.
+- **One city, 26 months**, from a dataset that does not document its monitoring stations.
+- **Simpson's cumulative exposure is reported for complete years only.** With a fixed interval
+  axis the integral works out at roughly five times the annual mean, so it carries no more
+  information than the mean does.
+
+## Contributors
+
+Akshita Goel (Simpson's method), Morenzo MinarWidjaja (polynomial regression), Savan Patel
+(data pipeline, exponential regression, and the validation, AQI and seasonality analysis).
+
+## Licence
+
+Code is MIT — see `LICENSE`.
+
+The data is **not**. `Data/` is redistributed from
+[a Kaggle dataset](https://www.kaggle.com/datasets/deepaksirohiwal/delhi-air-quality) under
+**CC BY-NC-SA 4.0**: attribution required, non-commercial only, share-alike. The derived
+fortnightly file inherits those terms. See `Data/README.md`.

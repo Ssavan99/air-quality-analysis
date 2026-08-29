@@ -1,0 +1,137 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+   Palette
+
+   Chrome is blue and slate only. Every warm hue is reserved for AQI
+   categories, so nothing in the interface can be mistaken for an air quality
+   reading. That rules out the amber accent a general-purpose dashboard would
+   normally use -- it sits too close to the orange of "Unhealthy for Sensitive
+   Groups".
+--------------------------------------------------------------------------- */
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #1e40af;
+  --primary-foreground: #ffffff;
+  --secondary: #e9eef6;
+  --secondary-foreground: #1e3a8a;
+  --muted: #f1f5f9;
+  --muted-foreground: #55637a;
+  --accent: #e9eef6;
+  --accent-foreground: #1e3a8a;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #dbe3ee;
+  --input: #dbe3ee;
+  --ring: #1e40af;
+  --radius: 0.65rem;
+
+  --grid: #e2e8f0;
+  --axis: #64748b;
+  --series: #1e40af;
+  --series-2: #0e7490;
+  --series-3: #6d28d9;
+}
+
+.dark {
+  --background: #0b1120;
+  --foreground: #e8eef7;
+  --card: #121a2b;
+  --card-foreground: #e8eef7;
+  --popover: #121a2b;
+  --popover-foreground: #e8eef7;
+  --primary: #7aa2f7;
+  --primary-foreground: #0b1120;
+  --secondary: #1c2740;
+  --secondary-foreground: #cbd9ef;
+  --muted: #172033;
+  --muted-foreground: #9fb0cc;
+  --accent: #1c2740;
+  --accent-foreground: #cbd9ef;
+  --destructive: #f87171;
+  --destructive-foreground: #0b1120;
+  --border: #243149;
+  --input: #243149;
+  --ring: #7aa2f7;
+
+  --grid: #22304a;
+  --axis: #93a4c0;
+  --series: #7aa2f7;
+  --series-2: #4dd0e1;
+  --series-3: #c4b5fd;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: "Fira Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Fira Code", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Figures line up in columns rather than jittering between rows. */
+  .tabular {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
