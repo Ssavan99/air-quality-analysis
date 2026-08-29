@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.join(HERE, "..", "PolynomialRegression"))
 import methods                                        # noqa: E402
 import seasonality                                    # noqa: E402
 import validation                                     # noqa: E402
-from aqi import CATEGORIES, category, overall_aqi     # noqa: E402
+from aqi import CATEGORIES, PM25_BREAKPOINTS, category, overall_aqi  # noqa: E402
 from cubic_regression import CubicRegression          # noqa: E402
 from linear_regression import LinearRegression        # noqa: E402
 from quadratic_regression import QuadraticRegression  # noqa: E402
@@ -45,6 +45,7 @@ def polynomial_block(frame):
     X = frame["co"].values.reshape(-1, 1)
     y = frame["pm2_5"].values
     rows = []
+    models = {}
     for name, factory, n_params in (
         ("Linear", LinearRegression, 2),
         ("Quadratic", QuadraticRegression, 3),
@@ -52,6 +53,7 @@ def polynomial_block(frame):
     ):
         model = factory()
         model.fit(X, y)
+        models[name] = model
         safe_co = float(model.predict_inverse(SAFE_PM25_THRESHOLD))
         entry = {
             "model": name,
@@ -73,22 +75,15 @@ def polynomial_block(frame):
                 abs(model.predict(np.array([[safe_co]]))[0] - SAFE_PM25_THRESHOLD)
             )
         rows.append(entry)
-    return rows
+    return rows, models
 
 
-def curve_points(frame, n=120):
+def curve_points(frame, models, n=120):
     """Fitted curves sampled over the observed CO range, for plotting."""
     X = frame["co"].values.reshape(-1, 1)
-    y = frame["pm2_5"].values
     grid = np.linspace(float(X.min()), float(X.max()), n).reshape(-1, 1)
     out = {"co": [round(float(v), 2) for v in grid.ravel()]}
-    for name, factory in (
-        ("Linear", LinearRegression),
-        ("Quadratic", QuadraticRegression),
-        ("Cubic", CubicRegression),
-    ):
-        model = factory()
-        model.fit(X, y)
+    for name, model in models.items():
         out[name.lower()] = [round(float(v), 3) for v in model.predict(grid)]
     return out
 
@@ -112,7 +107,7 @@ def main():
     biweekly = methods.load_biweekly()
     hourly = pd.read_csv(os.path.join(DATA, "delhi_aqi.csv"), parse_dates=["date"])
 
-    polynomial = polynomial_block(biweekly)
+    polynomial, polynomial_models = polynomial_block(biweekly)
     exponential = methods.exponential_fits(biweekly)
 
     for row in polynomial:
@@ -127,6 +122,8 @@ def main():
                 f"{row['model']} R2 moved: {row['r2']:.8f} vs published {expected}"
             )
     for pollutant, expected in EXPECTED_EXPONENTIAL_R2.items():
+        if exponential[pollutant] is None:
+            raise SystemExit(f"exponential {pollutant} fit did not converge")
         got = exponential[pollutant]["r2"]
         if abs(got - expected) >= 5e-7:
             raise SystemExit(
@@ -157,8 +154,13 @@ def main():
             {"low": low, "high": high, "name": name, "colour": colour}
             for low, high, name, colour in CATEGORIES
         ],
+        "pm25_breakpoints": [
+            {"from": conc_low, "to": conc_high, "name": name}
+            for (conc_low, conc_high, _aqi_low, _aqi_high), (_low, _high, name, _colour)
+            in zip(PM25_BREAKPOINTS, CATEGORIES)
+        ],
         "polynomial": polynomial,
-        "polynomial_curves": curve_points(biweekly),
+        "polynomial_curves": curve_points(biweekly, polynomial_models),
         "exponential": exponential,
         "simpson": methods.cumulative_exposure(biweekly),
         "validation": validation_results,

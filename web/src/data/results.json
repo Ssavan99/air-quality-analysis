@@ -59,6 +59,38 @@
       "colour": "#7E0023"
     }
   ],
+  "pm25_breakpoints": [
+    {
+      "from": 0.0,
+      "to": 9.0,
+      "name": "Good"
+    },
+    {
+      "from": 9.1,
+      "to": 35.4,
+      "name": "Moderate"
+    },
+    {
+      "from": 35.5,
+      "to": 55.4,
+      "name": "Unhealthy for Sensitive Groups"
+    },
+    {
+      "from": 55.5,
+      "to": 125.4,
+      "name": "Unhealthy"
+    },
+    {
+      "from": 125.5,
+      "to": 225.4,
+      "name": "Very Unhealthy"
+    },
+    {
+      "from": 225.5,
+      "to": 325.4,
+      "name": "Hazardous"
+    }
+  ],
   "polynomial": [
     {
       "model": "Linear",
@@ -81,7 +113,10 @@
         3.54420608330102e-08
       ],
       "safe_co_for_pm25_15": 655.68955648467,
-      "safe_co_valid": true
+      "safe_co_valid": true,
+      "solver_converged": true,
+      "solver_message": "The solution converged.",
+      "residual_at_returned_value": 1.7763568394002505e-15
     },
     {
       "model": "Cubic",
@@ -723,29 +758,6 @@
           "r2_inv": 0.9437087489336818,
           "r2_lstsq": 0.9437087489336817
         }
-      },
-      "cv_stability": {
-        "Linear": [
-          0.9275271365552676,
-          0.9236687246659491,
-          0.9387957419656768,
-          0.9239229286902363,
-          0.9362774100975553
-        ],
-        "Quadratic": [
-          0.9195286259134399,
-          0.9133700546580992,
-          0.9233682740216835,
-          0.9194557829664353,
-          0.9324756278168362
-        ],
-        "Cubic": [
-          0.9106560706646059,
-          0.90511439649595,
-          0.9248214479751693,
-          0.9179287220209403,
-          0.9247558468237234
-        ]
       },
       "repeated_cv": {
         "Linear": {

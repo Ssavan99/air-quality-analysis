@@ -45,7 +45,8 @@ peaks at 22:30 IST and troughs at 14:30 IST, a 2.9× swing — invisible in a fo
 
 ## Running it
 
-Requires Python 3.9+ and, for the site, Node 18+.
+Requires Python 3.9+ and, for the site, Node 20.19+ (or 22.12+) — Vite 8 will refuse to
+run on anything older.
 
 ```bash
 python3 -m venv env
@@ -87,8 +88,10 @@ python3 analysis/export_results.py
 python3 analysis/make_figure.py
 ```
 
-`export_results.py` re-derives every published figure and fails loudly if any of them has
-moved from the value this README quotes.
+`export_results.py` regenerates the whole file, and refuses to write if a **polynomial or
+exponential R²** has moved from the value this README quotes. That guard does not extend to
+the validation, AQI, seasonality or Simpson blocks — those are regenerated without a
+tripwire, and the script says so when it runs.
 
 Run the site:
 

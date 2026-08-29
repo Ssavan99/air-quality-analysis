@@ -17,6 +17,8 @@ import { categoryColour, formatNumber, results } from "@/lib/data"
 const { meta, seasonality, validation, polynomial } = results
 
 const hourlyLinear = validation.hourly.models.find((m) => m.model === "Linear")!
+const linearPoly = polynomial.find((p) => p.model === "Linear")!
+const quadraticPoly = polynomial.find((p) => p.model === "Quadratic")!
 const cubicPoly = polynomial.find((p) => p.model === "Cubic")!
 const summary = seasonality.summary as Record<string, number | string>
 const dist = seasonality.aqi_distribution
@@ -199,8 +201,8 @@ export default function App() {
                 {formatNumber(cubicPoly.residual_at_returned_value ?? 0, 2)} &mdash; it is not a root
                 at all. The fitted cubic simply has no real solution anywhere near the observed CO
                 range. The linear and quadratic models answer the same question at{" "}
-                {formatNumber(polynomial[0].safe_co_for_pm25_15, 0)} and{" "}
-                {formatNumber(polynomial[1].safe_co_for_pm25_15, 0)} µg/m³.
+                {formatNumber(linearPoly.safe_co_for_pm25_15, 0)} and{" "}
+                {formatNumber(quadraticPoly.safe_co_for_pm25_15, 0)} µg/m³.
               </p>
             </div>
             <div className="bg-card rounded-lg border p-5">
@@ -354,10 +356,15 @@ export default function App() {
             note={
               <>
                 CO dominates at R² {formatNumber(results.exponential.co.r2, 3)}; ozone is close to
-                useless at {formatNumber(results.exponential.o3.r2, 3)}, which is expected since O3
-                correlates <em>negatively</em> with PM2.5 ({formatNumber(results.exponential.o3.correlation, 2)}).
-                An exponential model assumes a monotonic relationship, so a negative correlation is
-                a poor candidate for it.
+                useless at {formatNumber(results.exponential.o3.r2, 3)}. That is not because O3
+                correlates negatively with PM2.5 ({formatNumber(results.exponential.o3.correlation, 2)})
+                &mdash; a·e^(b·x) fits a falling relationship perfectly well by taking b negative,
+                which is exactly what it did here (b ={" "}
+                {formatNumber(results.exponential.o3.b, 2)}). What drives fit quality is the
+                strength of the relationship, not its direction: SO2 correlates{" "}
+                {formatNumber(results.exponential.so2.correlation, 2)} and scores a near-identical
+                R² {formatNumber(results.exponential.so2.r2, 3)}. Neither pollutant tracks PM2.5
+                closely enough for an exponential curve to describe it.
               </>
             }
           >

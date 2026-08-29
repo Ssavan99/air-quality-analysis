@@ -110,20 +110,6 @@ def conditioning(X, y):
     return out
 
 
-def cv_stability(X, y, seeds=range(5), n_splits=5):
-    """Repeat the CV under several shuffles to show the ordering is not luck."""
-    out = {name: [] for name, _ in MODELS}
-    for seed in seeds:
-        for name, factory in MODELS:
-            scores = []
-            for train_idx, test_idx in KFold(n_splits, shuffle=True, random_state=seed).split(X):
-                model = factory()
-                model.fit(X[train_idx], y[train_idx])
-                scores.append(_r2(y[test_idx], model.predict(X[test_idx])))
-            out[name].append(float(np.mean(scores)))
-    return out
-
-
 def repeated_cv(X, y, repeats=200, n_splits=5):
     """Repeat the k-fold CV many times.
 
@@ -236,7 +222,6 @@ def run():
             "conditioning": conditioning(X, y),
         }
     X, y = load("biweekly")
-    results["biweekly"]["cv_stability"] = cv_stability(X, y)
     results["biweekly"]["repeated_cv"] = repeated_cv(X, y)
     results["aggregation_placebo"] = aggregation_placebo()
     return results

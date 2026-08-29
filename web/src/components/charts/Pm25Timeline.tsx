@@ -12,19 +12,10 @@ import { axisProps, gridProps, TooltipRow, TooltipShell } from "./chart-parts"
 import { categoryColour, formatNumber, results, shortCategory } from "@/lib/data"
 import { useIsNarrow } from "@/hooks/useIsNarrow"
 
-/** PM2.5 concentration breakpoints, in ug/m3, from the EPA 2024 revision. */
-const BANDS = [
-  { from: 0, to: 9.0, name: "Good" },
-  { from: 9.0, to: 35.4, name: "Moderate" },
-  { from: 35.4, to: 55.4, name: "Unhealthy for Sensitive Groups" },
-  { from: 55.4, to: 125.4, name: "Unhealthy" },
-  { from: 125.4, to: 225.4, name: "Very Unhealthy" },
-  { from: 225.4, to: 325.4, name: "Hazardous" },
-]
-
 export function Pm25Timeline() {
   const narrow = useIsNarrow()
   const data = results.series
+  const BANDS = results.pm25_breakpoints
   const max = Math.max(...data.map((d) => d.pm2_5))
   const top = Math.ceil(max / 100) * 100
 
