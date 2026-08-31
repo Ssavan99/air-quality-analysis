@@ -169,6 +169,9 @@ cython_debug/
 node_modules/
 web/dist/
 
+# Local code-graph build artifacts
+graphify-out/
+
 # Local working documents — never published
 SYNC.md
 PLAN.md

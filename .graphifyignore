@@ -1,0 +1,14 @@
+# Graphify indexes recognized code files only. Exclude generated and data paths.
+*.md
+*.json
+node_modules/
+venv/
+.venv/
+__pycache__/
+build/
+dist/
+Data/
+web/src/data/
+Screenshots/
+docs/
+graphify-out/
