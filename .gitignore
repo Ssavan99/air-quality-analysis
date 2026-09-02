@@ -180,3 +180,6 @@ PLAN.md
 # purpose: an unanchored `lib/` also matches web/src/lib, which silently kept
 # the front end's shared modules out of the commit and broke the Pages build.
 !web/src/lib/
+
+# Local editor and agent preview config — machine-specific, not for clones
+.claude/
